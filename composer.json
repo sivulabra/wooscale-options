@@ -1,0 +1,11 @@
+{
+  "name": "sivulabra/wooscale-options",
+  "type": "wordpress-plugin",
+  "license": "GPLv3",
+  "description": "Theme description",
+  "autoload": {
+    "psr-4": {
+      "WooScaleOptions\\": "src/"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+@use "./variables/breakpoints" as *;
+
+.wso-totals {
+  max-width: 600px;
+  margin-top: 1rem;
+
+  @media (min-width: $width-max-mobile) {
+    margin-top: 1.5rem;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  &-list {
+    border: 1px solid #cccccc;
+    padding-left: 1rem;
+    padding-right: 1rem;
+
+    & > li + li {
+      border-top: 1px solid #cccccc;
+    }
+  }
+
+  &-row {
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+
+    &-label,
+    &-price {
+      width: 50%;
+      display: block;
+    }
+
+    &-label {
+      font-weight: 600;
+    }
+
+    &-price {
+      text-align: right;
+    }
+
+    &-options {
+      padding: 0;
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+      color: #707070;
+    }
+  }
+
+  &-price {
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  &-total {
+    display: block;
+    text-align: right;
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+    border-top: 1px solid #cccccc;
+
+    &-price {
+      font-weight: 600;
+    }
+  }
+}

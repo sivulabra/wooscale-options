@@ -1,0 +1,11 @@
+@use "./variables/breakpoints" as *;
+
+.wso-container {
+  margin-top: 3rem;
+  max-width: 600px;
+  font-size: 14px;
+
+  @media (min-width: $width-max-mobile) {
+    font-size: 15px;
+  }
+}
