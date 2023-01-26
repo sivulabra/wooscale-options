@@ -1,6 +1,9 @@
 <?php
 
+use WooScaleOptions\API;
 use WooScaleOptions\Assets;
+use WooScaleOptions\CartHandler;
+use WooScaleOptions\Accessories\Accessory;
 use WooScaleOptions\Options\Select\Select;
 use WooScaleOptions\Options\Select\Item;
 use WooScaleOptions\Options\Number\Number;
@@ -61,7 +64,9 @@ final class WooScaleOptions {
     /**
      * Instantiate classes.
      */
+    $api = new API();
     $assets = new Assets();
+    $cart_handler = new CartHandler();
 
   }
 
@@ -73,7 +78,6 @@ final class WooScaleOptions {
 
   function display_options() {
     $options = $this->get_options();
-
     if ( ! isset( $options ) || empty( $options ) ) {
       return;
     }
@@ -97,6 +101,36 @@ final class WooScaleOptions {
     if ( ! isset( $accessories ) || empty ( $accessories ) ) {
       return;
     }
+
+    ?>
+    <div class="wso-accessories">
+      <h3 class="wso-title">
+
+      </h3>
+      <div id="wso-accessories" class="wso-accessories-loop">
+      <?php
+      foreach ( $accessories as $accessory ) {
+        ?>
+        <div
+          data-product-id="<?php echo esc_html( $accessory->get_product_id() ); ?>"
+          data-product-name="<?php echo esc_html( $accessory->get_name() ) ?>"
+          data-product-price="<?php echo esc_html( $accessory->get_price() ); ?>"
+          data-selected="false"
+          class="wso-accessory"
+        >
+          <img src="<?php echo esc_html( $accessory->get_thumbnail_url() ); ?>" width="64" height="64">
+          <div class="wso-accessory-info">
+            <span class="wso-accessory-name"><?php echo esc_html( $accessory->get_name() ); ?></span>
+            <p class="wso-accessory-desc"><?php echo esc_html( $accessory->get_description() ); ?></p>
+          </div>
+          <div class="wso-accessory-price"><span><?php echo esc_html( $accessory->get_price() ); ?> €</span></div>
+        </div>
+        <?php
+      }
+      ?>
+      </div>
+    </div>
+    <?php
   }
 
   function display_container_end() {
@@ -114,7 +148,7 @@ final class WooScaleOptions {
    * @return bool True if passed, false otherwise.
    */
   function validate_options_fields( $passed, $product_id, $quantity ) {
-    $options = $this->get_options();
+    $options = $this->get_options( $product_id );
 
     if ( ! isset( $options ) || empty( $options ) ) {
       return $passed;
@@ -139,7 +173,7 @@ final class WooScaleOptions {
    * @return array
    */
   function add_options_field_data_to_cart( $cart_item_data, $product_id, $variation_id, $quantity ) {
-    $options = $this->get_options();
+    $options = $this->get_options( $product_id );
 
     if ( ! isset( $options ) || empty( $options ) ) {
       return $cart_item_data;
@@ -215,29 +249,32 @@ final class WooScaleOptions {
    */
   function add_cart_item_name( $name, $cart_item, $cart_item_key ) {
     if ( isset( $cart_item['wso_options'] ) ) {
-      $product = $cart_item['data'];
+      $name .= "<div class='wso-cart'>";
 
       /**
        * Get product price without accessories or options.
        */
+      $product = $cart_item['data'];
       if ( $product->is_on_sale() ) {
         $product_price = $product->get_sale_price();
       } else {
         $product_price = $product->get_regular_price();
       }
       $name .= sprintf(
-        '<p class="wso-item">Tuote: <strong>%s</strong> (%s €)</p>',
+        '<p class="wso-cart-item">Tuote: <strong>%s</strong> (%s €)</p>',
         esc_html( $product->get_name() ),
         esc_html( $product_price )
       );
       foreach( $cart_item['wso_options'] as $option ) {
         $name .= sprintf(
-          '<p class="wso-item">%s: <strong>%s</strong> (+%s €)</p>',
+          '<p class="wso-cart-item">%s: <strong>%s</strong> (+%s €)</p>',
           esc_html( $option['option_label'] ),
           esc_html( $option['value_label'] ),
           esc_html( $option['price'] )
         );
       }
+
+      $name .= "</div>";
     }
 
     return $name;
@@ -290,36 +327,105 @@ final class WooScaleOptions {
     <?php
   }
 
+  /**
+   * Get accessories.
+   * 
+   * @return array
+   */
   function get_accessories() {
-    return get_field( 'accessories' );
+    $accessories_field = get_field( 'accessories' );
+    if ( ! isset( $accessories_field ) || empty( $accessories_field ) ) {
+      return [];
+    }
+    $accessories = [];
+    foreach ( $accessories_field as $accessory ) {
+      $product = wc_get_product( $accessory["product"] );
+
+      /**
+       * Extract values.
+       */
+      $name = $product->get_name();
+      $description = wp_trim_words( $product->get_short_description(), 12 );
+      $price = $product->get_price();
+      if ( ! $product->get_image_id() ) {
+        $thumbnail_url = wc_placeholder_img_src();
+      } else {
+        $thumbnail_url = wp_get_attachment_image_url( $product->get_image_id(), 'thumbnail' );
+      }
+      $product_id = $product->get_id();
+
+      $accessories[] = new Accessory(
+        [
+          "name" => $name,
+          "description" => $description,
+          "price" => $price,
+          "thumbnail_url" => $thumbnail_url,
+          "product_id" => $product_id
+        ]
+      );
+    }
+    return $accessories;
   }
 
-  function get_options() {
+  /**
+   * Get options.
+   * 
+   * @param int $product_id
+   * @return array
+   */
+  function get_options( $product_id = NULL ) {
+    if ( $product_id ) {
+      $options_field = get_field( 'options', $product_id );
+    } else {
+      $options_field = get_field( 'options' );
+    }
+
+    if ( ! isset( $options_field ) || empty( $options_field ) ) {
+      return [];
+    }
+
     $options = [];
+    foreach ( $options_field as $option ) {
+      $type = $option["type"];
+      $label = $option["label"];
 
-    $select1 = new Select( [
-      "label" => "Vaihtoehto 1",
-      "items" => [
-        new Item( ["label" => "Option 1", "index" => 1, "price" => 27.82] ),
-        new Item( ["label" => "Option 2", "index" => 2, "price" => 50] )
-      ],
-    ] );
+      /**
+       * Type: select
+       */
+      if ( $type === "select" ) {
+        $items = [];
+        foreach ( $option["items"] as $index => $item ) {
+          $item_args = [
+            "label" => $item["label"],
+            "index" => $index + 1,
+            "price" => $item["price"]
+          ];
+          $items[] = new Item( $item_args );
+        }
 
-    $select2 = new Select( [
-      "label" => "Vaihtoehto 2",
-      "items" => [
-        new Item( ["label" => "Option 1", "index" => 1, "price" => 25] ),
-        new Item( ["label" => "Option 2", "index" => 2, "price" => 50] )
-      ],
-    ] );
+        $options[] = new Select(
+          [
+            "label" => $label,
+            "items" => $items
+          ]
+        );
+      } 
+      
+      /**
+       * Type: number
+       */
+      else if ( $type === "number" ) {
+        $price_per_unit = $option["number"]["price"];
+        $default = $option["number"]["default"];
+        $options[] = new Number( [
+          "label" => $label,
+          "price_per_unit" => $price_per_unit,
+          "default" => $default
+        ] );
+      }
+    }
 
-    $number1 = new Number( [
-      "label" => "Vaihtoehto 3",
-      "price_per_unit" => 2.25,
-      "default" => 0,
-    ] );
-
-    return [$select1, $select2, $number1];
+    return $options;
   }
 
 }

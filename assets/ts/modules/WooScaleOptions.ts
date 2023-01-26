@@ -12,11 +12,12 @@ class WooOptions {
   accessoriesContainer: HTMLElement | null;
   totalsContainer: HTMLElement | null;
   cartForm: HTMLElement | null;
-  addToCartBtn: HTMLElement | null;
+  addToCartBtn: HTMLButtonElement | null;
   product: Product;
   quantity: number | null;
   accessories: Accessory[];
   options: Option[];
+  hasTotalShownOnce: boolean;
 
   constructor() {
     this.cssPrefix = "wso";
@@ -96,6 +97,11 @@ class WooOptions {
     this.accessories = this.getAccessories();
     this.options = this.getOptions();
 
+    /**
+     * Instantiate other variables.
+     */
+    this.hasTotalShownOnce = false;
+
     this.events();
   }
 
@@ -117,7 +123,7 @@ class WooOptions {
     this.totalsContainer.innerHTML = ``;
 
     /**
-     * Update options and accessories.
+     * Update options.
      */
     this.options = this.getOptions();
 
@@ -132,6 +138,19 @@ class WooOptions {
      */
     this.quantity = this.getQuantity();
     if (!this.quantity) return;
+
+    /**
+     * Pan to the totals section.
+     */
+    if (!this.hasTotalShownOnce) {
+      const y =
+        this.totalsContainer.getBoundingClientRect().top + window.scrollY;
+      window.scroll({
+        top: y - 200,
+        behavior: "smooth",
+      });
+      this.hasTotalShownOnce = true;
+    }
 
     /**
      * Start creating the totals list.
@@ -152,6 +171,7 @@ class WooOptions {
     productRowPrice.innerText = `${this.quantity * this.product.price} €`;
     productRow.append(productRowLabel);
     productRow.append(productRowPrice);
+    totalsHTML.append(productRow);
 
     /**
      * Option rows.
@@ -166,6 +186,25 @@ class WooOptions {
     productRow.append(optionsList);
 
     /**
+     * Accessory rows.
+     */
+    const selectedAccessories = this.getSelectedAccessories();
+    selectedAccessories.forEach((accessory) => {
+      const quantity = this.quantity ? this.quantity : 0;
+      const accessoryRow = document.createElement("li");
+      accessoryRow.classList.add(`${this.cssPrefix}-totals-row`);
+      const accessoryRowLabel = document.createElement("span");
+      accessoryRowLabel.classList.add(`${this.cssPrefix}-totals-row-label`);
+      accessoryRowLabel.innerText = `${quantity} x ${accessory.name}`;
+      const accessoryRowPrice = document.createElement("span");
+      accessoryRowPrice.classList.add(`${this.cssPrefix}-totals-row-price`);
+      accessoryRowPrice.innerText = `${quantity * accessory.price} €`;
+      accessoryRow.append(accessoryRowLabel);
+      accessoryRow.append(accessoryRowPrice);
+      totalsHTML.append(accessoryRow);
+    });
+
+    /**
      * Total price div.
      */
     const totalPrice = document.createElement("div");
@@ -173,44 +212,44 @@ class WooOptions {
     totalPrice.innerText = "Yhteensä ";
     const totalPriceNumberSpan = document.createElement("span");
     totalPriceNumberSpan.classList.add(`${this.cssPrefix}-totals-total-price`);
-    const totalPriceNumber =
-      this.product.price +
-      this.options.reduce((acc, obj) => {
-        console.log(acc);
-        return acc + obj.getPrice();
+    let totalPriceNumber = this.product.price;
+
+    /**
+     * Add options price to the total price.
+     */
+    totalPriceNumber += this.options.reduce((acc, obj) => {
+      return acc + obj.getPrice();
+    }, 0);
+
+    /**
+     * Add accessories price to the total price.
+     */
+    totalPriceNumber += this.accessories
+      .filter((accessory) => accessory.selected)
+      .reduce((acc, obj) => {
+        return acc + obj.price;
       }, 0);
     totalPriceNumberSpan.innerText = `${totalPriceNumber} € sis. ALV`;
     totalPrice.append(totalPriceNumberSpan);
-
-    /**
-     * Append the elements to the totals container.
-     */
-    totalsHTML.append(productRow);
     totalsHTML.append(totalPrice);
-    this.totalsContainer.append(totalsHTML);
 
-    /*
-    this.totalsContainer.innerHTML = `
-    <ul class="${this.cssPrefix}-totals-list">
-      <li class="${this.cssPrefix}-totals-row">
-        <span class="${this.cssPrefix}-totals-label">${this.quantity} x ${
-      this.product.name
-    }</span>
-        <span class="${this.cssPrefix}-totals-price">${
-      this.quantity * this.product.price
-    } €</span>
-      </li>
-    </ul>
-    <div class="${this.cssPrefix}-totals-total">Yhteensä <span class="${
-      this.cssPrefix
-    }-totals-total-price">0 €</span> (sis. ALV 24%)</div>
-    `;
-    */
+    this.totalsContainer.append(totalsHTML);
   }
 
   handleAccessoryClick(accessory: Accessory, evt: MouseEvent) {
     evt.preventDefault();
-    console.log("handleAccessoryClick");
+
+    if (!this.addToCartBtn) return;
+
+    accessory.toggleSelected();
+    let newAddToCartBtnValue = this.product.id.toString();
+    this.accessories.forEach((accessory) => {
+      if (accessory.selected) {
+        newAddToCartBtnValue += "," + accessory.productId;
+      }
+    });
+    this.addToCartBtn.value = newAddToCartBtnValue;
+
     this.handleChange();
   }
 
@@ -272,6 +311,15 @@ class WooOptions {
   getSelectedOptions(): Option[] {
     if (!this.options) return [];
     return this.options.filter((option) => option.isSelected());
+  }
+
+  getSelectedAccessories(): Accessory[] {
+    if (!this.accessories) return [];
+    return this.accessories.filter((accessory) => accessory.selected);
+  }
+
+  setAddToCartButtonValue(productIds: number[]) {
+    if (!this.addToCartBtn) return;
   }
 }
 

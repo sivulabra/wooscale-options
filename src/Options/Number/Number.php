@@ -2,9 +2,9 @@
 
 namespace WooScaleOptions\Options\Number;
 
-use WooScaleOptions\Options\Option;
+use WooScaleOptions\Options\AbstractOption;
 
-class Number extends Option {
+class Number extends AbstractOption {
   function __construct( $args ) {
     $this->data = [
       "type" => "number",

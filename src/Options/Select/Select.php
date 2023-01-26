@@ -3,9 +3,9 @@
 namespace WooScaleOptions\Options\Select;
 
 use WooScaleOptions\Options\Select\Item;
-use WooScaleOptions\Options\Option;
+use WooScaleOptions\Options\AbstractOption;
 
-class Select extends Option {
+class Select extends AbstractOption {
   function __construct( $args ) {
     $this->data = [
       "type" => "select",
