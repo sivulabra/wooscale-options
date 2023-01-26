@@ -105,7 +105,7 @@ final class WooScaleOptions {
     ?>
     <div class="wso-accessories">
       <h3 class="wso-title">
-
+        Valitse lisävarusteet
       </h3>
       <div id="wso-accessories" class="wso-accessories-loop">
       <?php
