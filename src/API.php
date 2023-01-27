@@ -47,8 +47,6 @@ class API {
       $ids[] = intval( $sanitized_id );
     }
 
-    echo '<pre>'; print_r( WC() ); wp_die();
-
     foreach( $ids as $id ) {
       WC()->cart->add_to_cart( $id );
     }

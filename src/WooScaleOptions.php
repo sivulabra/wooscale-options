@@ -64,7 +64,7 @@ final class WooScaleOptions {
     /**
      * Instantiate classes.
      */
-    $api = new API();
+    // $api = new API();
     $assets = new Assets();
     $cart_handler = new CartHandler();
 

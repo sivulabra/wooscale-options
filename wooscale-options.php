@@ -25,7 +25,7 @@ define( 'WOOSCALE_OPTIONS_PLUGIN_DIR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WOOSCALE_OPTIONS_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
 
 // Bootstrap the plugin
-if ( ! class_exists( 'WooOptions' ) ) {
+if ( ! class_exists( 'WooScaleOptions' ) ) {
 	require_once __DIR__ . '/src/WooScaleOptions.php';
 }
 
