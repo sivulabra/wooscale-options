@@ -160,13 +160,17 @@ final class WooScaleOptions {
     }
 
     foreach ( $options as $option ) {
+      $label = $option->get_label();
+      $lower_case_label = str_replace( ' ', '', mb_strtolower( $label ) );
+
+      /**
+       * Check that this value exists in $_POST.
+       */
       if ( ! isset( $_POST['wso-option-' . $lower_case_label] ) ) {
         $passed = false;
         wc_add_notice( 'Valitse "' . esc_html( $label ) . '" lisätäksesi tuotteen koriin.' );
       }
 
-      $label = $option->get_label();
-      $lower_case_label = str_replace( ' ', '', mb_strtolower( $label ) );
       $length_of_value_string = strlen( strval( $_POST['wso-option-' . $lower_case_label] ) );
 
       if ( $length_of_value_string === 0 ) {
