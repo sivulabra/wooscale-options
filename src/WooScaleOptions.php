@@ -62,6 +62,11 @@ final class WooScaleOptions {
     add_filter( 'woocommerce_cart_item_name', [$this, 'add_cart_item_name'], 10, 3 );
 
     /**
+     * 
+     */
+    add_action( 'woocommerce_checkout_create_order_line_item', [$this, "add_custom_data_to_order"], 10, 4 );
+
+    /**
      * Instantiate classes.
      */
     // $api = new API();
@@ -154,7 +159,12 @@ final class WooScaleOptions {
       return $passed;
     }
 
-    foreach( $options as $option ) {
+    foreach ( $options as $option ) {
+      if ( ! isset( $_POST['wso-option-' . $lower_case_label] ) ) {
+        $passed = false;
+        wc_add_notice( 'Valitse "' . esc_html( $label ) . '" lisätäksesi tuotteen koriin.' );
+      }
+
       $label = $option->get_label();
       $lower_case_label = str_replace( ' ', '', mb_strtolower( $label ) );
       $length_of_value_string = strlen( strval( $_POST['wso-option-' . $lower_case_label] ) );
@@ -179,7 +189,7 @@ final class WooScaleOptions {
       return $cart_item_data;
     }
 
-    foreach( $options as $option ) {
+    foreach ( $options as $option ) {
       $label = $option->get_label();
       $lower_case_label = str_replace( ' ', '', mb_strtolower( $label ) );
       $selected_value = $_POST['wso-option-' . $lower_case_label];
@@ -426,6 +436,17 @@ final class WooScaleOptions {
     }
 
     return $options;
+  }
+
+  function add_custom_data_to_order( $item, $cart_item_key, $values, $order ) {
+    foreach ( $item as $cart_item_key => $values ) {
+      if ( isset( $values['wso_options'] ) ) {
+        $custom_metas = $values['wso_options'];
+        foreach ( $custom_metas as $custom_meta ) {
+          $item->add_meta_data( $custom_meta["option_label"], $custom_meta["value_label"] . " (+ {$custom_meta["price"]} €)", true );
+        }
+      }
+    }
   }
 
 }
